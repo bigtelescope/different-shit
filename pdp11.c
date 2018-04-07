@@ -1,7 +1,7 @@
 #include <stdlib.h>
-# include <stdio.h>
+#include <stdio.h>
 #include <string.h>
-# include <assert.h>
+#include <assert.h>
 
 typedef unsigned char byte;
 typedef unsigned short int word;
@@ -38,7 +38,7 @@ void do_add()
 
 void do_unknown()
 {
-	printf("WHAT");
+	printf("WHAT is it?");
 	//exit(0);
 }
 
@@ -52,7 +52,7 @@ struct Command
 	{0, 0xFFFF, "halt", do_halt},
 	{0010000, 0170000, "mov", do_mov},
 	{0060000, 0170000, "add", do_add},
-	{007000, 0171100,"unknown", do_unknown },
+	{0070000, 0170000,"unknown", do_unknown },
 };
 
 void run(adr pc0)
@@ -110,14 +110,18 @@ void b_write(adr a, byte val)
 		mem[a - 1] = mem[a-1] | b;
 }
 
-void load_file()
+void load_file(char* FileName)
 {
+	int size = strlen(FileName);
+	if(size == 0)
+		exit(0);
+
 	unsigned int a, b, val;
 	int i = 0;
 	FILE * f;
-	f = fopen("sum.o", "r");
+	f = fopen(FileName, "r");
 	if (f == NULL) {
-		perror("sum.o");
+		perror(FileName);
 		exit(1);
 	}
 	while(fscanf(f, "%x%x", &a, &b) == 2)
@@ -141,10 +145,12 @@ void mem_dump(adr start, word n)
 	}
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-	load_file();
+	//char* FileName = (char*)calloc(100, sizeof(char))
+	load_file(argv[1]);//         load_file(argv[1]);
 	//mem_dump(0x40, 8);
 	run(0x40);
 	return 0;
 }
+
