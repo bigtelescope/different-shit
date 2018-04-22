@@ -9,7 +9,6 @@ typedef word adr;
 
 byte mem [64 * 1024];
 word reg [8];
-FILE * com;
 
 #define pc reg[7]
 #define REG 1
@@ -111,8 +110,8 @@ void get_nn (word w)
 {
 	nn.ad = (w >> 6) & 07;
 	nn.val = w & 077;
-	fprintf (com, "R%o , #%o", nn.ad, nn.val);
-	//fprintf(com, "------\n%o\n------\n", w);
+	printf ("R%o , #%o", nn.ad, nn.val);
+	//printf(com, "------\n%o\n------\n", w);
 }
 
 struct P_Command create_command(word w)
@@ -130,7 +129,7 @@ struct P_Command create_command(word w)
 
 void do_halt (struct P_Command PC)
 {
-	fprintf(com, "\n");
+	printf("\n");
 	print_reg();
 	exit(0);
 }
@@ -146,7 +145,7 @@ void do_mov (struct P_Command PC)
 	{
 		w_write(dd.ad, dd.res);
 	}
-	fprintf(com, "\n");
+	printf("\n");
 }
 
 void do_add (struct P_Command PC)
@@ -160,12 +159,12 @@ void do_add (struct P_Command PC)
 	{
 		w_write(dd.ad, dd.res);
 	}
-	fprintf(com, "\n");
+	printf("\n");
 }
 
 void do_unknown (struct P_Command PC)
 {
-	fprintf(com, "unknown\n");
+	printf("unknown\n");
 }
 
 void do_sob (struct P_Command PC)
@@ -175,22 +174,22 @@ void do_sob (struct P_Command PC)
 	{
 		reg[7] -= 2 * nn.val;
 	}
-	fprintf (com, "\n");
+	printf ("\n");
 }
 
 void do_clr (struct P_Command PC)
 {
 	dd.val = 0;
-	fprintf (com, "\n");
+	printf ("\n");
 }
 
 void print_reg ()
 {
 	int i = 0;
-	fprintf (com, "Print registers\n");
+	printf("Print registers\n");
 	for (i = 0; i < 8; i ++)
 	{
-		fprintf(com, "reg[%d] = %o\n", i, reg[i]);
+		printf("reg[%d] = %o\n", i, reg[i]);
 	}
 }
 
@@ -200,7 +199,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 	{
 		case 0:
 		{
-			fprintf(com, "R%o", r);
+			printf("R%o", r);
 			hh.ad = r;
 			hh.val = reg[r];
 			hh.space = REG;
@@ -209,7 +208,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 
 		case 1:
 		{
-			fprintf (com, "@R%o", r);
+			printf ("@R%o", r);
 			hh.val = reg[r];
 			hh.ad = w_read ((adr) reg[r]);
 			hh.space = MEM;
@@ -220,7 +219,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 		{
 			if (r == 7 || r == 6 || b == 0)
 			{
-				fprintf (com, "#%o", w_read ((adr) reg[r]));
+				printf ("#%o", w_read ((adr) reg[r]));
 				hh.ad = reg[r];
 				hh.val = w_read ((adr) reg[r]);
 				hh.space = MEM;
@@ -228,7 +227,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 			}
 			else
 			{
-				fprintf (com, "(R%o)+", r);
+				printf ("(R%o)+", r);
 				hh.ad =  reg[r];
 				hh.val = b_read ((adr) reg[r]);
 				hh.space = MEM;
@@ -239,7 +238,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 
 	case 3:
 		{
-			fprintf (com, "@#%o", w_read((adr) (reg[r])));
+			printf ("@#%o", w_read((adr) (reg[r])));
 			if (r == 7 || r == 6 || b == 0)
 			{
 				hh.ad = w_read ((adr) reg[r]);
@@ -258,7 +257,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 		}
 		case 4:
 		{
-			fprintf (com, "-(R%o)", r);
+			printf ("-(R%o)", r);
 			if (r == 7 || r == 6 || b == 0)
 			{
 				reg[r] -= 2;
@@ -278,7 +277,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 		}
 		case 5:
 		{
-			fprintf (com, "@-(R%o)", r);
+			printf ("@-(R%o)", r);
 			reg[r] -= 2;
 			hh.ad = w_read ((adr) reg[r]);
 			hh.val = w_read ((adr) w_read ((adr) (reg[r])));
@@ -297,40 +296,40 @@ void load_file(char * FileName)
 
 	unsigned int a, b, val;
 	int i = 0;
-	com = fopen(FileName, "r");
-	if (com == NULL) {
+	FILE * f = fopen(FileName, "r");
+	if (f == NULL) {
 		perror(FileName);
 		exit(1);
 	}
-	while(fscanf(com, "%x%x", &a, &b) == 2)
+	while(fscanf(f, "%x%x", &a, &b) == 2)
 	{
 		for(i = a; i < (a + b); i++)
 		{
-			fscanf(com, "%x", &val);
+			fscanf(f, "%x", &val);
 			b_write(i, val);
 		}
 	}
-	fclose(com);
-	mem_dump(a, b);                    //what is "a" and "b"
+	fclose(f);
+	//mem_dump(a, b);                    //what is "a" and "b"
 }
 
 void mem_dump(adr start, word n)
 {
 	assert((start % 2) == 0);
-	com = fopen("adress-word", "w");
+	FILE * f = fopen("adress-word", "w");
 	int i;
 	for(i = 0; i < n; i += 2)
 	{
-		fprintf(com, "%06o : %06o\n", (start + i), w_read((adr)(start + i))); // try to delete (adr)???
+		printf("%06o : %06o\n", (start + i), w_read((adr)(start + i))); // try to delete (adr)???
 	}
-	fclose(com);
+	fclose(f);
 }
 
 void run(adr pc0)
 {
 	int i = 0;
 	pc = (word)pc0;                           //can i delete (word)???
-	com = fopen("results.txt", "w");
+	//FILE * f = fopen("results.txt", "w");
 	while(1)
 	{
 		word w = w_read(pc);
@@ -341,12 +340,12 @@ void run(adr pc0)
 			struct Command cmd = commands[i];
 			if((w & commands[i].mask) == commands[i].opcode)
 			{
-				fprintf( com, "%06o : %06o\t\t", pc - 2, w );
-				fprintf( com, "%s ", commands[i].name);
+				printf("%06o : %06o\t\t", pc - 2, w );
+				printf("%s ", commands[i].name);
 				{
 					//fprintf (com, " , ");
 					ss = get_mode (PC.r1, PC.mode_r1, PC.B);
-					fprintf (com, ", ");
+					printf (", ");
 				}
 				if (cmd.param & HAS_DD)
 				{
@@ -367,7 +366,7 @@ void run(adr pc0)
 			}
 		}
 	}
-	fclose(com);
+	//fclose(f);
 }
 
 int main (int argc, char * argv[])
@@ -376,3 +375,4 @@ int main (int argc, char * argv[])
     run(01000);
     return 0;
 }
+
