@@ -342,6 +342,7 @@ void run(adr pc0)
 			{
 				printf("%06o : %06o\t\t", pc - 2, w );
 				printf("%s ", commands[i].name);
+				if (cmd.param & HAS_SS)
 				{
 					//fprintf (com, " , ");
 					ss = get_mode (PC.r1, PC.mode_r1, PC.B);
