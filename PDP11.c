@@ -6,6 +6,7 @@
 typedef unsigned char byte;
 typedef unsigned short int word;
 typedef word adr;
+typedef int dword;
 
 byte mem [64 * 1024];
 word reg [8];
@@ -43,6 +44,9 @@ void do_add (struct P_Command PC);//ok
 void do_unknown (struct P_Command PC);//ok
 void do_sob (struct P_Command PC);//ok
 void do_clr (struct P_Command PC);//ok 
+void do_movb(struct P_Command PC);
+void do_br(struct P_Command PC);
+void do_beq(struct P_Command PC);
 
 struct P_Command
 {
@@ -58,8 +62,8 @@ struct P_Command
 struct mr 
 {
 	word ad;		// address
-	word val;		// value
-	word res;		// result
+	dword val;		// value                                           ////////// put "dword"
+	dword res;		// result                                          ////////// put "dword"
 	word space; 	// address in mem[ ] or reg[ ]
 } ss, dd, hh, nn;
 
@@ -74,9 +78,12 @@ struct Command
 {
 	{	  0,	0177777,	"halt",		do_halt,	NO_PARAM		},
 	{010000,	0170000,	"mov",		do_mov, 	HAS_SS | HAS_DD	},
+	{0110000, 	0170000,	"movb", 	do_movb, 	HAS_SS | HAS_DD },
 	{060000, 	0170000,	"add",		do_add,		HAS_DD | HAS_SS	},
 	{077000,	0177000,	"sob",		do_sob,		HAS_NN			},
-	{005000, 	0177000,	"clr",		do_clr,		HAS_DD			},
+	{005000, 	0177700,	"clr",		do_clr,		HAS_DD			},
+	{001400, 	0xFF00,		"beq", 		do_beq, 	HAS_XX			},
+	{000400, 	0xFF00, 	"br", 		do_br, 		HAS_XX			},
 	{	  0,		  0,	"unknown",	do_unknown,	NO_PARAM		}
 };
 
@@ -148,6 +155,40 @@ void do_mov (struct P_Command PC)
 	printf("\n");
 }
 
+void do_movb(struct P_Command PC)
+{
+	dd.res = ss.val;
+	if (dd.space == REG)
+	{
+			//reg[dd.ad] = dd.res;
+		b_write(dd.ad, (byte)dd.res);
+	}
+	else
+	{
+		b_write(dd.ad, (byte)dd.res);
+	}
+	printf ("\n");
+/*	dd.res = ss.val;
+	if(dd.space == REG)
+	{
+		reg[dd.ad]= dd.res;
+	}
+	else
+	{
+		w_write(dd.ad, dd.res);
+	}
+	printf("\n");*/
+}
+
+void do_br(struct P_Command PC)
+{
+	printf("\n");
+}
+void do_beq(struct P_Command PC)
+{
+	printf("\n");
+}
+
 void do_add (struct P_Command PC)
 {
 	dd.res = dd.val + ss.val;
@@ -164,7 +205,8 @@ void do_add (struct P_Command PC)
 
 void do_unknown (struct P_Command PC)
 {
-	printf("unknown\n");
+	printf("\n");
+	exit(0);
 }
 
 void do_sob (struct P_Command PC)
@@ -335,7 +377,7 @@ void run(adr pc0)
 		word w = w_read(pc);
 		pc += 2;
 		struct P_Command PC = create_command(w);
-		for(i = 0; i <= sizeof(commands); i ++)      //or "sizeof(commands)/sizeof(struct Command)"
+		for(i = 0; i <= sizeof(commands)/sizeof(struct Command); i ++)      //or "sizeof(commands)/sizeof(struct Command)"
 		{
 			struct Command cmd = commands[i];
 			if((w & commands[i].mask) == commands[i].opcode)
@@ -377,3 +419,5 @@ int main (int argc, char * argv[])
     return 0;
 }
 
+
+//br, beq
