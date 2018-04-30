@@ -10,6 +10,14 @@ typedef int dword;
 
 byte mem [64 * 1024];
 word reg [8];
+word wflag;
+
+/*word N_ONE;
+word N_NULL;
+word C_ONE;
+word C_NULL;
+word Z_ONE;
+word Z_NULL;*/
 
 #define pc reg[7]
 #define REG 1
@@ -22,6 +30,8 @@ word reg [8];
 
 # define LO(x) ((x) & 0xFF)
 # define HI(x) (((x) >> 8) & 0xFF)
+
+#define Ch(a, b) b = a
 
 word w_read  (adr a);//ok
 void w_write (adr a, word val);//ok
@@ -37,6 +47,8 @@ struct P_Command create_command (word w);//assignment of command //ok
 void run (adr pc0);//ok
 
 struct mr get_mode (word r, word mode, word b);//ok
+
+void change_flag();
 
 void do_halt (struct P_Command PC);//ok
 void do_mov (struct P_Command PC);//ok
@@ -57,6 +69,20 @@ struct P_Command
 	word r1;      // 1 operand 
 	word mode_r2; // mode 2 operand
 	word r2;      // 2 operand
+};
+
+enum for_flags
+{
+	Ch(8, N_ONE),
+	Ch(65527, N_NULL),
+
+	Ch(4, Z_ONE),
+	Ch(65531, Z_NULL),
+
+	Ch(2, C_ONE),
+	Ch(65533, C_NULL),
+
+	//
 };
 
 struct mr 
@@ -112,6 +138,28 @@ void w_write (adr a, word val)
 	mem[a] = (byte) val;
 	mem[a + 1] = (byte) (val >> 8);
 }
+
+void change_flag()
+{
+	if(dd.res < 0)
+	{
+		wflag = wflag | N_ONE;
+	}
+	else
+	{
+		wflag = wflag & N_NULL;
+		if(dd. res == 0)
+		{
+			wflag = wflag | Z_ONE;
+		}
+		else
+		{
+			wflag = wflag & Z_NULL;
+		}
+	}
+
+}
+
 
 void get_nn (word w)
 {
