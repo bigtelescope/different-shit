@@ -10,7 +10,7 @@ typedef int dword;
 
 byte mem [64 * 1024];
 word reg [8];
-word wflag;
+struct Flags flags;
 
 /*word N_ONE;
 word N_NULL;
@@ -27,6 +27,7 @@ word Z_NULL;*/
 #define HAS_DD (1 << 1)
 #define HAS_NN (1 << 2)
 #define HAS_XX (1 << 3)
+#define sign(w, is_byte) (is_byte ? ((w)>>7)&1 : ((w)>>15)&1 )
 
 # define LO(x) ((x) & 0xFF)
 # define HI(x) (((x) >> 8) & 0xFF)
@@ -48,7 +49,7 @@ void run (adr pc0);//ok
 
 struct mr get_mode (word r, word mode, word b);//ok
 
-void change_flag();
+void change_flag(struct P_Command PC);
 
 void do_halt (struct P_Command PC);//ok
 void do_mov (struct P_Command PC);//ok
@@ -71,7 +72,7 @@ struct P_Command
 	word r2;      // 2 operand
 };
 
-enum for_flags
+/*enum for_flags
 {
 	Ch(8, N_ONE),
 	Ch(65527, N_NULL),
@@ -83,7 +84,7 @@ enum for_flags
 	Ch(65533, C_NULL),
 
 	//
-};
+};*/
 
 struct mr 
 {
@@ -92,6 +93,14 @@ struct mr
 	dword res;		// result                                          ////////// put "dword"
 	word space; 	// address in mem[ ] or reg[ ]
 } ss, dd, hh, nn;
+
+
+struct Flags
+{
+	word C;
+	word Z;
+	word N;
+};
 
 struct Command
 {
@@ -134,30 +143,33 @@ void b_write(adr a, byte val)
 
 void w_write (adr a, word val)
 {
-	//assert((a % 2) == 0);       // need to check?
+
+	assert((a % 2) == 0);       // need to check?
 	mem[a] = (byte) val;
 	mem[a + 1] = (byte) (val >> 8);
 }
 
-void change_flag()
+void change_flag(struct P_Command PC)
 {
-	if(dd.res < 0)
+	if(PC.B)
 	{
-		wflag = wflag | N_ONE;
+		flags.N = (dd.res >> 7) & 1;
+	}
+	else 
+	{
+		flags.N = (dd.res >> 15) & 1;
+	}
+
+	flags.Z = (dd.res == 0);
+
+	if(PC.B)
+	{
+		flags.C = (dd.res >> 8) & 1;
 	}
 	else
 	{
-		wflag = wflag & N_NULL;
-		if(dd. res == 0)
-		{
-			wflag = wflag | Z_ONE;
-		}
-		else
-		{
-			wflag = wflag & Z_NULL;
-		}
+		flags.C = (dd.res >> 16) & 1;
 	}
-
 }
 
 
@@ -165,7 +177,7 @@ void get_nn (word w)
 {
 	nn.ad = (w >> 6) & 07;
 	nn.val = w & 077;
-	printf ("R%o , #%o", nn.ad, nn.val);
+	printf ("R%o , %o", nn.ad, pc - 2*nn.val);
 	//printf(com, "------\n%o\n------\n", w);
 }
 
@@ -202,14 +214,27 @@ void do_mov (struct P_Command PC)
 	}
 	printf("\n");
 }
+word byte_to_word(byte b) 
+{
 
+	word w;
+	if (sign(b, 1) == 0) {
+		w = 0;
+		w |= b;
+	} else {
+		w = ~0xFF;
+		w |= b;
+	}
+	return w;
+
+}
 void do_movb(struct P_Command PC)
 {
 	dd.res = ss.val;
 	if (dd.space == REG)
 	{
-			//reg[dd.ad] = dd.res;
-		b_write(dd.ad, (byte)dd.res);
+		reg[dd.ad] = byte_to_word(dd.res);
+		
 	}
 	else
 	{
@@ -232,6 +257,7 @@ void do_br(struct P_Command PC)
 {
 	printf("\n");
 }
+
 void do_beq(struct P_Command PC)
 {
 	printf("\n");
@@ -276,11 +302,13 @@ void do_clr (struct P_Command PC)
 void print_reg ()
 {
 	int i = 0;
-	printf("Print registers\n");
+	//printf("Print registers\n");
+	printf("\t");
 	for (i = 0; i < 8; i ++)
 	{
-		printf("reg[%d] = %o\n", i, reg[i]);
+		printf("r[%d] = %o ", i, reg[i]);
 	}
+	printf("\n");
 }
 
 struct mr get_mode (word r, word mode, word b)//register, mode of this register, byte 
@@ -452,7 +480,8 @@ void run(adr pc0)
 					get_nn (w);
 				}
 				cmd.func(PC);
-				//print_reg ();
+				printf("\n");
+				print_reg ();
 				break;
 			}
 		}
