@@ -12,13 +12,6 @@ byte mem [64 * 1024];
 word reg [8];
 struct Flags flags;
 
-/*word N_ONE;
-word N_NULL;
-word C_ONE;
-word C_NULL;
-word Z_ONE;
-word Z_NULL;*/
-
 #define pc reg[7]
 #define REG 1
 #define MEM 0
@@ -39,6 +32,7 @@ void w_write (adr a, word val);//ok
 byte b_read  (adr a);   //ok 
 void b_write (adr a, byte val); //ok
 void get_nn (word w);//ok
+void get_xx (word w);
 
 void load_file ( );//ok
 void mem_dump (adr start, word n);//printing of words //ok
@@ -57,7 +51,7 @@ void do_add (struct P_Command PC);//ok
 void do_unknown (struct P_Command PC);//ok
 void do_sob (struct P_Command PC);//ok
 void do_clr (struct P_Command PC);//ok 
-void do_movb(struct P_Command PC);
+void do_movb(struct P_Command PC);//omg ok
 void do_br(struct P_Command PC);
 void do_beq(struct P_Command PC);
 
@@ -72,20 +66,6 @@ struct P_Command
 	word r2;      // 2 operand
 };
 
-/*enum for_flags
-{
-	Ch(8, N_ONE),
-	Ch(65527, N_NULL),
-
-	Ch(4, Z_ONE),
-	Ch(65531, Z_NULL),
-
-	Ch(2, C_ONE),
-	Ch(65533, C_NULL),
-
-	//
-};*/
-
 struct mr 
 {
 	word ad;		// address
@@ -94,6 +74,11 @@ struct mr
 	word space; 	// address in mem[ ] or reg[ ]
 } ss, dd, hh, nn;
 
+union offsetof
+{
+	char a;
+	unsigned char b;
+}xx;
 
 struct Flags
 {
@@ -149,6 +134,20 @@ void w_write (adr a, word val)
 	mem[a + 1] = (byte) (val >> 8);
 }
 
+word byte_to_word(byte b) 
+{
+
+	word w;
+	if (sign(b, 1) == 0) {
+		w = 0;
+		w |= b;
+	} else {
+		w = ~0xFF;
+		w |= b;
+	}
+	return w;
+}
+
 void change_flag(struct P_Command PC)
 {
 	if(PC.B)
@@ -179,6 +178,30 @@ void get_nn (word w)
 	nn.val = w & 077;
 	printf ("R%o , %o", nn.ad, pc - 2*nn.val);
 	//printf(com, "------\n%o\n------\n", w);
+}
+
+void get_xx (word w)
+{
+	xx.b = w & 0xff;
+}
+
+void do_beq (struct P_Command PC)
+{
+	if (flags.Z == 1)
+		do_br (PC);
+	else
+	{
+		printf ("%o", pc + 2 * xx.a);
+		printf ("\n");
+	}
+}
+
+void do_br (struct P_Command PC)
+{
+	pc += 2 * xx.a;
+	printf ("%o", pc);
+	printf ("\n");
+	//exit(0);
 }
 
 struct P_Command create_command(word w)
@@ -213,21 +236,9 @@ void do_mov (struct P_Command PC)
 		w_write(dd.ad, dd.res);
 	}
 	printf("\n");
+	change_flag(PC);
 }
-word byte_to_word(byte b) 
-{
 
-	word w;
-	if (sign(b, 1) == 0) {
-		w = 0;
-		w |= b;
-	} else {
-		w = ~0xFF;
-		w |= b;
-	}
-	return w;
-
-}
 void do_movb(struct P_Command PC)
 {
 	dd.res = ss.val;
@@ -241,26 +252,7 @@ void do_movb(struct P_Command PC)
 		b_write(dd.ad, (byte)dd.res);
 	}
 	printf ("\n");
-/*	dd.res = ss.val;
-	if(dd.space == REG)
-	{
-		reg[dd.ad]= dd.res;
-	}
-	else
-	{
-		w_write(dd.ad, dd.res);
-	}
-	printf("\n");*/
-}
-
-void do_br(struct P_Command PC)
-{
-	printf("\n");
-}
-
-void do_beq(struct P_Command PC)
-{
-	printf("\n");
+	change_flag(PC);
 }
 
 void do_add (struct P_Command PC)
@@ -275,6 +267,7 @@ void do_add (struct P_Command PC)
 		w_write(dd.ad, dd.res);
 	}
 	printf("\n");
+	change_flag(PC);
 }
 
 void do_unknown (struct P_Command PC)
@@ -302,14 +295,70 @@ void do_clr (struct P_Command PC)
 void print_reg ()
 {
 	int i = 0;
-	//printf("Print registers\n");
-	printf("\t");
+	printf("\n\n");
+	printf("Print registers\n");
+	//printf("\n");
 	for (i = 0; i < 8; i ++)
 	{
-		printf("r[%d] = %o ", i, reg[i]);
+		printf("r[%d] = %o\n", i, reg[i]);
 	}
-	printf("\n");
+	//printf("\n");
 }
+
+
+/*struct sign
+{
+	char val;
+	char sign;
+}xx;
+
+void get_xx (word w)
+{
+	xx.val = w & 0xff;
+	xx.sign = ((w >> 7) & 01);
+}
+
+void do_br(struct P_Command PC)
+{
+	if(xx.sign == 1)
+	{
+		pc -= 2 * xx.val;
+	}
+	else
+	{
+		pc += 2 * xx.val;
+	}
+	
+	if(xx.sign == 1)
+	{	
+		printf("%o\n", pc - (2 * xx.val));
+	}
+	if(xx.sign == 0)
+	{
+		printf("%o\n", pc + (2 * xx.val));
+	}
+}
+
+void do_beq(struct P_Command PC)
+{
+	
+	if(flags.Z == 1)
+	{
+		do_br(PC);
+	}
+	else
+	{
+		if(xx.sign == 1)
+		{	
+			printf("%o\n", pc - (2 * xx.val));
+		}
+		if(xx.sign == 0)
+		{
+			printf("%o\n", pc + (2 * xx.val));
+		}
+	}
+	//printf("%o\n", pc);
+}*/
 
 struct mr get_mode (word r, word mode, word b)//register, mode of this register, byte 
 {
@@ -458,7 +507,7 @@ void run(adr pc0)
 			struct Command cmd = commands[i];
 			if((w & commands[i].mask) == commands[i].opcode)
 			{
-				printf("%06o : %06o\t\t", pc - 2, w );
+				printf("%06o : %06o\t", pc - 2, w );
 				printf("%s ", commands[i].name);
 				if (cmd.param & HAS_SS)
 				{
@@ -479,9 +528,13 @@ void run(adr pc0)
 				{
 					get_nn (w);
 				}
+				if(cmd.param & HAS_XX)
+				{
+					get_xx(w);
+				}
 				cmd.func(PC);
-				printf("\n");
-				print_reg ();
+				//printf("\n");
+				//print_reg ();
 				break;
 			}
 		}
@@ -495,6 +548,3 @@ int main (int argc, char * argv[])
     run(01000);
     return 0;
 }
-
-
-//br, beq
