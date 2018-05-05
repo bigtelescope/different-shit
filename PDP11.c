@@ -73,12 +73,12 @@ struct mr
 	dword res;		// result                                          ////////// put "dword"
 	word space; 	// address in mem[ ] or reg[ ]
 } ss, dd, hh, nn;
-
+/*
 union offsetof
 {
 	char a;
 	unsigned char b;
-}xx;
+}xx;*/
 
 struct Flags
 {
@@ -179,7 +179,7 @@ void get_nn (word w)
 	printf ("R%o , %o", nn.ad, pc - 2*nn.val);
 	//printf(com, "------\n%o\n------\n", w);
 }
-
+/*
 void get_xx (word w)
 {
 	xx.b = w & 0xff;
@@ -202,7 +202,7 @@ void do_br (struct P_Command PC)
 	printf ("%o", pc);
 	printf ("\n");
 	//exit(0);
-}
+}*/
 
 struct P_Command create_command(word w)
 {
@@ -306,7 +306,7 @@ void print_reg ()
 }
 
 
-/*struct sign
+struct sign
 {
 	char val;
 	char sign;
@@ -315,28 +315,22 @@ void print_reg ()
 void get_xx (word w)
 {
 	xx.val = w & 0xff;
-	xx.sign = ((w >> 7) & 01);
+	//xx.sign = ((w >> 7) & 01);
 }
 
 void do_br(struct P_Command PC)
 {
+	//printf("%o ", pc);
 	if(xx.sign == 1)
 	{
-		pc -= 2 * xx.val;
+		pc += 2 * xx.val;
 	}
 	else
 	{
 		pc += 2 * xx.val;
 	}
-	
-	if(xx.sign == 1)
-	{	
-		printf("%o\n", pc - (2 * xx.val));
-	}
-	if(xx.sign == 0)
-	{
-		printf("%o\n", pc + (2 * xx.val));
-	}
+	printf("%o ", pc);
+	printf("\n");
 }
 
 void do_beq(struct P_Command PC)
@@ -358,7 +352,7 @@ void do_beq(struct P_Command PC)
 		}
 	}
 	//printf("%o\n", pc);
-}*/
+}
 
 struct mr get_mode (word r, word mode, word b)//register, mode of this register, byte 
 {
