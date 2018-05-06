@@ -80,6 +80,12 @@ union offsetof
 	unsigned char b;
 }xx;*/
 
+struct sign
+{
+	char val;
+	char sign;
+}xx;
+
 struct Flags
 {
 	word C;
@@ -171,7 +177,6 @@ void change_flag(struct P_Command PC)
 	}
 }
 
-
 void get_nn (word w)
 {
 	nn.ad = (w >> 6) & 07;
@@ -179,6 +184,13 @@ void get_nn (word w)
 	printf ("R%o , %o", nn.ad, pc - 2*nn.val);
 	//printf(com, "------\n%o\n------\n", w);
 }
+
+void get_xx (word w)
+{
+	xx.val = w & 0xff;
+	//xx.sign = ((w >> 7) & 01);
+}
+
 /*
 void get_xx (word w)
 {
@@ -244,8 +256,7 @@ void do_movb(struct P_Command PC)
 	dd.res = ss.val;
 	if (dd.space == REG)
 	{
-		reg[dd.ad] = byte_to_word(dd.res);
-		
+		reg[dd.ad] = byte_to_word(dd.res);	
 	}
 	else
 	{
@@ -305,19 +316,6 @@ void print_reg ()
 	//printf("\n");
 }
 
-
-struct sign
-{
-	char val;
-	char sign;
-}xx;
-
-void get_xx (word w)
-{
-	xx.val = w & 0xff;
-	//xx.sign = ((w >> 7) & 01);
-}
-
 void do_br(struct P_Command PC)
 {
 	//printf("%o ", pc);
@@ -342,14 +340,7 @@ void do_beq(struct P_Command PC)
 	}
 	else
 	{
-		if(xx.sign == 1)
-		{	
-			printf("%o\n", pc - (2 * xx.val));
-		}
-		if(xx.sign == 0)
-		{
-			printf("%o\n", pc + (2 * xx.val));
-		}
+		printf("%o\n", pc + (2 * xx.val));
 	}
 	//printf("%o\n", pc);
 }
