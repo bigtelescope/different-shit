@@ -41,9 +41,13 @@ struct P_Command create_command (word w);//assignment of command //ok
 //void print_command (struct P_Command c);
 void run (adr pc0);//ok
 
+void dump_NZVC();
+
+
 struct mr get_mode (word r, word mode, word b);//ok
 
 void change_flag(struct P_Command PC);
+void dump_PC(struct P_Command PC);
 
 void do_halt (struct P_Command PC);//ok
 void do_mov (struct P_Command PC);//ok
@@ -54,6 +58,8 @@ void do_clr (struct P_Command PC);//ok
 void do_movb(struct P_Command PC);//omg ok
 void do_br(struct P_Command PC);
 void do_beq(struct P_Command PC);
+void do_tstb(struct P_Command PC);
+void do_bpl(struct P_Command PC);
 
 struct P_Command
 {
@@ -110,8 +116,35 @@ struct Command
 	{005000, 	0177700,	"clr",		do_clr,		HAS_DD			},
 	{001400, 	0xFF00,		"beq", 		do_beq, 	HAS_XX			},
 	{000400, 	0xFF00, 	"br", 		do_br, 		HAS_XX			},
+	{0105700,	0177700,	"tstb",		do_tstb,	HAS_DD			},
+	{0100000,   0xFF00,		"bpl",		do_bpl,		HAS_XX			},
 	{	  0,		  0,	"unknown",	do_unknown,	NO_PARAM		}
 };
+
+/*
+void get_xx (word w)
+{
+	xx.b = w & 0xff;
+}
+
+void do_beq (struct P_Command PC)
+{
+	if (flags.Z == 1)
+		do_br (PC);
+	else
+	{
+		printf ("%o", pc + 2 * xx.a);
+		printf ("\n");
+	}
+}
+
+void do_br (struct P_Command PC)
+{
+	pc += 2 * xx.a;
+	printf ("%o", pc);
+	printf ("\n");
+	//exit(0);
+}*/
 
 byte b_read(adr a)
 {
@@ -120,7 +153,7 @@ byte b_read(adr a)
 
 word w_read(adr a)
 {
-	//assert((a % 2) == 0);       // need to check?
+	assert((a % 2) == 0);       // need to check?
 	word w;
 	w = mem[a];
 	w += mem[a + 1] * 256;      // for what " * 256 " ?
@@ -130,12 +163,16 @@ word w_read(adr a)
 void b_write(adr a, byte val)
 {
 	mem[a] = val;
+	if(a == 0177566)
+	{
+		fprintf(stderr, "i can printf  %c\n", mem[a]);
+	}
 }
 
 void w_write (adr a, word val)
 {
 
-	assert((a % 2) == 0);       // need to check?
+	assert((a % 2) == 0);      
 	mem[a] = (byte) val;
 	mem[a + 1] = (byte) (val >> 8);
 }
@@ -154,8 +191,30 @@ word byte_to_word(byte b)
 	return w;
 }
 
+void dump_NZVC()
+{
+	printf("%c", flags.N ? 'N' : '-');
+	printf("%c", flags.Z ? 'Z' : '-');
+	printf("-%c ", flags.C ? 'C' : '-');
+}
+void dump_PC(struct P_Command PC)
+{	
+	/*
+		word w;   // word 
+	int B;        // Byte
+	word command; // opcode
+	word mode_r1; //mode 1 operand 
+	word r1;      // 1 operand 
+	word mode_r2; // mode 2 operand
+	word r2;      // 2 operand
+	*/
+	printf("PC: B=%o opcode=%o, op1=%o, r1=%o, op2=%o, r2=%o\n", PC.B, PC.command, PC.mode_r1, PC.r1, PC.mode_r2, PC.r2);
+}
+
 void change_flag(struct P_Command PC)
 {
+	//dump_PC(PC);
+	//printf(" dd.res=%o\n", dd.res);
 	if(PC.B)
 	{
 		flags.N = (dd.res >> 7) & 1;
@@ -188,33 +247,10 @@ void get_nn (word w)
 void get_xx (word w)
 {
 	xx.val = w & 0xff;
+	unsigned int x = pc + 2*xx.val;
+	printf("%06o ", x);
 	//xx.sign = ((w >> 7) & 01);
 }
-
-/*
-void get_xx (word w)
-{
-	xx.b = w & 0xff;
-}
-
-void do_beq (struct P_Command PC)
-{
-	if (flags.Z == 1)
-		do_br (PC);
-	else
-	{
-		printf ("%o", pc + 2 * xx.a);
-		printf ("\n");
-	}
-}
-
-void do_br (struct P_Command PC)
-{
-	pc += 2 * xx.a;
-	printf ("%o", pc);
-	printf ("\n");
-	//exit(0);
-}*/
 
 struct P_Command create_command(word w)
 {
@@ -327,8 +363,8 @@ void do_br(struct P_Command PC)
 	{
 		pc += 2 * xx.val;
 	}
-	printf("%o ", pc);
-	printf("\n");
+	//printf("%o ", pc);
+	//printf("\n");
 }
 
 void do_beq(struct P_Command PC)
@@ -338,11 +374,27 @@ void do_beq(struct P_Command PC)
 	{
 		do_br(PC);
 	}
+	//printf("%o\n", pc);
+}
+
+void do_tstb(struct P_Command PC)
+{
+	//printf("dd.adr=%o dd.val=%o ", dd.ad, dd.val);	
+	dd.res = dd.val;
+	change_flag(PC);
+	printf("\n");
+}
+
+void do_bpl(struct P_Command PC)
+{
+	if(flags.N == 0)
+	{
+		do_br(PC);
+	}
 	else
 	{
-		printf("%o\n", pc + (2 * xx.val));
+		printf("\n");
 	}
-	//printf("%o\n", pc);
 }
 
 struct mr get_mode (word r, word mode, word b)//register, mode of this register, byte 
@@ -479,7 +531,10 @@ void mem_dump(adr start, word n)
 
 void run(adr pc0)
 {
-	int i = 0;
+	int i;
+
+	// display device is always ready!
+	mem[0177564] |= 128;
 	pc = (word)pc0;                           //can i delete (word)???
 	//FILE * f = fopen("results.txt", "w");
 	while(1)
@@ -519,7 +574,9 @@ void run(adr pc0)
 				}
 				cmd.func(PC);
 				//printf("\n");
+				//dump_NZVC();
 				//print_reg ();
+				printf("\n");
 				break;
 			}
 		}
@@ -529,6 +586,10 @@ void run(adr pc0)
 
 int main (int argc, char * argv[])
 {
+	//mem[0177564] |= 128;
+	mem[0177564] = -1;
+	fprintf(stderr, "PDP is ready\n");
+
     load_file(argv[1]);
     run(01000);
     return 0;
