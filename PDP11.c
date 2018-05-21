@@ -133,31 +133,6 @@ struct Command
 	{	  0,		  0,	"unknown",	do_unknown,	NO_PARAM		}
 };
 
-/*
-void get_xx (word w)
-{
-	xx.b = w & 0xff;
-}
-
-void do_beq (struct P_Command PC)
-{
-	if (flags.Z == 1)
-		do_br (PC);
-	else
-	{
-		printf ("%o", pc + 2 * xx.a);
-		printf ("\n");
-	}
-}
-
-void do_br (struct P_Command PC)
-{
-	pc += 2 * xx.a;
-	printf ("%o", pc);
-	printf ("\n");
-	//exit(0);
-}*/
-
 byte b_read(adr a)
 {
 	return mem[a];
@@ -348,6 +323,16 @@ void do_sob (struct P_Command PC)
 void do_clr (struct P_Command PC)
 {
 	dd.val = 0;
+	if(dd.space == REG)
+	{
+		reg[PC.r2] = 0;
+	}
+	else
+	{
+		w_write(dd.ad, dd.val);
+	}
+
+	//print_reg();
 	printf ("\n");
 }
 
@@ -359,7 +344,7 @@ void print_reg ()
 	//printf("\n");
 	for (i = 0; i < 8; i ++)
 	{
-		printf("r[%d] = %o\n", i, reg[i]);
+		printf("R[%d] = %o\n", i, reg[i]);
 	}
 	//printf("\n");
 }
@@ -434,17 +419,13 @@ void do_rts(struct P_Command PC)
 
 void do_mul(struct P_Command PC)
 {
-	long int res = reg[PC.r1] * reg[PC.r2];
-
-	//printf(" r = %o, ss.val = %o", reg[PC.r1], ss.val);
+	printf("R%o", PC.r1);
+	long int res = reg[PC.r1] * ss.val;
+	reg[PC.r1] = res;
 	//print_reg();
-	printf("next = %o\n", mem[pc]);
-	if(PC.w == 070327)
-	{
-		print_reg();
-		exit(0);
-	}
+	//printf("result = %ld", res);
 	//exit(0);
+	printf("\n");
 }
 
 void do_dec(struct P_Command PC)
@@ -662,9 +643,16 @@ void run(adr pc0)
 				printf("%s ", commands[i].name);
 				if (cmd.param & HAS_SS)
 				{
-					//fprintf (com, " , ");
-					ss = get_mode (PC.r1, PC.mode_r1, PC.B);
-					printf (", ");
+					if(commands[i].name == "mul")
+					{
+						ss = get_mode (PC.r2, PC.mode_r2, PC.B);
+						printf (", ");
+					}
+					else
+					{	
+						ss = get_mode (PC.r1, PC.mode_r1, PC.B);
+						printf (", ");
+					}
 				}
 				if (cmd.param & HAS_DD)
 				{
