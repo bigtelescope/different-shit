@@ -56,10 +56,15 @@ void do_unknown (struct P_Command PC);//ok
 void do_sob (struct P_Command PC);//ok
 void do_clr (struct P_Command PC);//ok 
 void do_movb(struct P_Command PC);//omg ok
-void do_br(struct P_Command PC);
-void do_beq(struct P_Command PC);
-void do_tstb(struct P_Command PC);
-void do_bpl(struct P_Command PC);
+void do_br(struct P_Command PC);//ok
+void do_beq(struct P_Command PC);//ok
+void do_tstb(struct P_Command PC);//ok
+void do_bpl(struct P_Command PC);//ok
+void do_jsr(struct P_Command PC);//ok
+void do_rts(struct P_Command PC);//ok
+void do_mul(struct P_Command PC);
+void do_dec(struct P_Command PC);
+void do_tst(struct P_Command PC);
 
 struct P_Command
 {
@@ -79,6 +84,7 @@ struct mr
 	dword res;		// result                                          ////////// put "dword"
 	word space; 	// address in mem[ ] or reg[ ]
 } ss, dd, hh, nn;
+
 /*
 union offsetof
 {
@@ -97,6 +103,7 @@ struct Flags
 	word C;
 	word Z;
 	word N;
+	word V;
 };
 
 struct Command
@@ -118,6 +125,11 @@ struct Command
 	{000400, 	0xFF00, 	"br", 		do_br, 		HAS_XX			},
 	{0105700,	0177700,	"tstb",		do_tstb,	HAS_DD			},
 	{0100000,   0xFF00,		"bpl",		do_bpl,		HAS_XX			},
+	{004000, 	0177000, 	"jsr",		do_jsr,	 	HAS_DD			},
+	{0000200,	0177770, 	"rts",		do_rts,		HAS_DD			},
+	{0070000, 	0177000,    "mul",		do_mul,		HAS_SS			},
+	{0005300, 	0177700,	"dec",		do_dec,		HAS_DD			},
+	{005700,	0177700,	"tst",		do_tst, 	HAS_DD			},
 	{	  0,		  0,	"unknown",	do_unknown,	NO_PARAM		}
 };
 
@@ -153,7 +165,7 @@ byte b_read(adr a)
 
 word w_read(adr a)
 {
-	assert((a % 2) == 0);       // need to check?
+	//assert((a % 2) == 0);       // need to check?
 	word w;
 	w = mem[a];
 	w += mem[a + 1] * 256;      // for what " * 256 " ?
@@ -165,7 +177,7 @@ void b_write(adr a, byte val)
 	mem[a] = val;
 	if(a == 0177566)
 	{
-		fprintf(stderr, "i can printf  %c\n", mem[a]);
+		fprintf(stderr, " %c ", mem[a]);
 	}
 }
 
@@ -369,11 +381,12 @@ void do_br(struct P_Command PC)
 
 void do_beq(struct P_Command PC)
 {
-	
 	if(flags.Z == 1)
 	{
 		do_br(PC);
 	}
+	printf("%o\n", pc);
+	//exit(0);
 	//printf("%o\n", pc);
 }
 
@@ -397,6 +410,82 @@ void do_bpl(struct P_Command PC)
 	}
 }
 
+void do_jsr (struct P_Command PC)
+{
+	printf(", R%o", PC.r1);
+    w_write(reg[6], reg[PC.r2]);
+    reg[6]-= 2;
+    reg[PC.r2] = reg[PC.r1];
+    reg[PC.r1] = dd.val;
+    printf("pc = %o\n", pc);
+    //exit(0);
+}
+
+
+void do_rts(struct P_Command PC)
+{
+	printf("R%o", PC.r2);
+    //word dst = (PC.w & 7);
+    reg[7] = reg[PC.r2];
+    reg[6]+= 2;
+    reg[PC.r2] = w_read(reg[6]);
+    printf("\n");
+}
+
+void do_mul(struct P_Command PC)
+{
+	long int res = reg[PC.r1] * reg[PC.r2];
+
+	//printf(" r = %o, ss.val = %o", reg[PC.r1], ss.val);
+	//print_reg();
+	printf("next = %o\n", mem[pc]);
+	if(PC.w == 070327)
+	{
+		print_reg();
+		exit(0);
+	}
+	//exit(0);
+}
+
+void do_dec(struct P_Command PC)
+{
+	dd.val--;
+	reg[dd.ad] --;
+	change_flag(PC);
+	if(reg[dd.ad] = 0100000)
+	{
+		flags.V = 1;
+	}
+	else
+	{
+		flags.V = 0;
+	}
+	if (dd.space == MEM)
+	{
+		w_write(dd.ad, dd.val);
+	}
+	else
+	{ 
+		reg[dd.ad] = dd.val;
+	}
+	printf("\n");
+	//printf("pc = %o\n", pc);
+	//print_reg();
+	//exit(0);
+	//printf("\t%o %o", reg[dd.ad], dd.val);
+	//exit(0);
+}
+
+void do_tst(struct P_Command PC)
+{
+	dd.res = dd.val;
+	change_flag(PC);
+	printf("\t");
+	printf(" pc =%o\n", pc);
+	//printf("%o < ---r5\n", reg[5]);
+	//exit(0);
+}
+
 struct mr get_mode (word r, word mode, word b)//register, mode of this register, byte 
 {
 	switch(mode)
@@ -413,8 +502,8 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 		case 1:
 		{
 			printf ("@R%o", r);
-			hh.val = reg[r];
-			hh.ad = w_read ((adr) reg[r]);
+			hh.ad = reg[r];
+			hh.val = w_read ((adr) reg[r]);
 			hh.space = MEM;
 			break;
 		}
@@ -459,7 +548,7 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 			}
 			break;
 		}
-		case 4:
+	case 4:
 		{
 			printf ("-(R%o)", r);
 			if (r == 7 || r == 6 || b == 0)
@@ -479,13 +568,35 @@ struct mr get_mode (word r, word mode, word b)//register, mode of this register,
 				break;
 			}
 		}
-		case 5:
+	case 5:
 		{
 			printf ("@-(R%o)", r);
 			reg[r] -= 2;
 			hh.ad = w_read ((adr) reg[r]);
 			hh.val = w_read ((adr) w_read ((adr) (reg[r])));
 			hh.space = MEM;
+			break;
+		}
+	case 6:
+		{
+			if (r == 7)
+			{
+				hh.ad = 7;
+				hh.val = reg[7] + 2 + w_read (reg[7]);
+				reg[7] +=2;
+				hh.ad = hh.val;
+				printf ("%o", hh.val);
+			}
+			else
+			{
+				printf ("%o(R%o)", w_read (reg[7]), r);
+				hh.ad = r;
+				hh.val = w_read ((adr) reg[r] + w_read(reg[7]));
+				reg[7] += 2;
+				//hh.ad = hh.val;
+				//printf("%o      val =  %o", reg[r], hh.val);
+			}
+			//hh.space = REG;
 			break;
 		}
 	}
