@@ -1,0 +1,24 @@
+int main()
+{
+    int arr[3] = {11, 22, 33};
+    const int * (*p3)(const int *, int n) = f3;
+    const int * (*p2)(const int *, int n) = f2;
+    const int * (*p1)(const int arr[], int n) = f1;
+   
+    cout << "using pointers to functions:" << endl;
+    cout << p1(arr, 3) << ": " << *p1(arr, 3) << endl;
+    cout << p2(arr, 3) << ": " << *(*p2)(arr, 3) << endl;
+    cout << p3(arr, 3) << ": " << *(p2)(arr, 3) << endl << endl;
+ 
+    cout << "Using an array of pointers to functions:" << endl;
+    const int * (*pa[3])(const int *, int) = {p1, p2, p3};
+    for (int i = 0; i < 3; ++i)
+    {
+        cout << pa[i](arr, 3) << ": " << *pa[i](arr, 3) << endl;
+    }
+ 
+    cout << "pointers to an array of pointers: " <<endl;
+    const int * (*(*pb)[3])(const int *, int) = pa;
+    cout << (*(*pb))[1](arr, 3);
+       
+}
