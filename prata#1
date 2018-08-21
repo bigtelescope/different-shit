@@ -1,0 +1,22 @@
+void candy(struct Candy arr[3])
+{
+    int i;
+    for(i = 0; i < 3; i++)
+    {
+        cout << "Name: ";
+        getline(cin, arr[i].name);
+        cout << "Weight: ";
+        cin >> arr[i].weight;
+        cin.get(); 
+        cout << endl;
+    }
+}
+ 
+int main()
+{
+    Candy * pew = new Candy [3];
+    //struct Candy arr[3];
+    candy(pew);
+    delete [] pew;
+    return 0;
+}

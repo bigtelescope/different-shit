@@ -1,0 +1,46 @@
+int fill_array(int arr[], int n)
+{
+	int size = 0;
+	for(int i = 0; i < n; i++)
+	{
+		int pew;
+		cout << "member num. " << i + 1 << " : ";
+		cin >>pew;
+		if(!cin)
+		{
+			cin.clear();
+			//while (cin.get() != '\n')
+             //   continue;
+			cout << "Bad input\n";
+			break;
+		}
+		else
+		{
+			arr[i] = pew;
+			size += 1;
+		}
+	}
+	return size;
+}
+
+void show_array(int arr[], int n)
+{
+	for(int i = 0; i < n; i++)
+	{
+		cout << "member num. " << i + 1 << " : " << arr[i] << endl;
+	}
+}
+
+void reverse_array(int arr[], int n)
+{
+	int arb[n];
+	for(int i = 0, j = 0; i < n, j < n; i++, j++)
+	{
+		arb[i] = arr[j];
+	}
+	for(int k = n - 1; k >= 0; k--)
+	{
+		cout << "new value is: " << arb[k] << endl;
+	}
+}
+
