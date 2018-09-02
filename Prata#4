@@ -1,0 +1,27 @@
+Person::Person(const string & In, const char * fn)
+{
+	this->lname = In;
+	strcpy(this->fname, fn);
+}
+
+void Person::Show() const // формат: имя фамилия
+{
+	int i = 0;
+	cout << this->lname << "\t";
+	while(this->fname[i] != '\0')
+	{
+		cout << this->fname[i];
+		i++;
+	}
+}
+
+void Person::FormalShow() const // формат: фамилия, и
+{
+	int i = 0;
+	while(this->fname[i] != '\0')
+	{
+		cout << this->fname[i];
+		i++;
+	}
+	cout << this->lname << "\t";
+}
